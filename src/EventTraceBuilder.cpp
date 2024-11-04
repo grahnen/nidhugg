@@ -31,7 +31,7 @@
 #define ANSIRst "\x1b[m"
 
 static void clear_observed(sym_ty &syms);
-static std::string events_to_string(const llvm::SmallVectorImpl<SymEv> &e);
+static std::string events_to_string(const llvm::SmallVectorImpl<SymEv> &e, std::function<std::string(int)> pid_str = (std::string(&)(int))std::to_string);
 
 EventTraceBuilder::
 EventTraceBuilder(const Configuration &conf) : TSOPSOTraceBuilder(conf) {
@@ -641,11 +641,11 @@ bool EventTraceBuilder::wut_string_add_node
   return res;
 }
 
-static std::string events_to_string(const llvm::SmallVectorImpl<SymEv> &e) {
+static std::string events_to_string(const llvm::SmallVectorImpl<SymEv> &e, std::function<std::string(int)> pid_str) {
   if (e.size() == 0) return "None()";
   std::string res;
   for (unsigned i = 0; i < e.size(); ++i) {
-    res += e[i].to_string();
+    res += e[i].to_string(pid_str);
     if (i != e.size()-1) res += ", ";
   }
   return res;
@@ -767,7 +767,7 @@ void EventTraceBuilder::debug_print() const {
     IPid handler = threads[ipid].handler_id;
     if(!multiple_handlers && handler != -1){
       if(last_handler != -1 && handler != last_handler)
-	multiple_handlers = true;
+        multiple_handlers = true;
       last_handler = handler;
     }
     iid_offs = std::max(iid_offs,2*ipid+int(iid_string(i).size()));
@@ -831,12 +831,18 @@ void EventTraceBuilder::debug_print() const {
   //   lines[i] += "]";
   // }
 
+  auto pid_str = [this](IPid p) {
+    return threads[p].cpid.to_string();
+    return p*2 >= threads.size() ? std::to_string(p)
+      : threads[p*2].cpid.to_string();
+  };
+
   unsigned i = 0;
   for(; i < prefix.len(); ++i){
     IPid ipid = prefix[i].iid.get_pid();
     llvm::dbgs() << rpad("",2+ipid*2)
                  << rpad(iid_string(i),iid_offs-ipid*2)
-                 << " " << rpad(events_to_string(prefix[i].sym),symev_offs)
+                 << threads[prefix[i].iid.get_pid()].handler_id << ": " << rpad(events_to_string(prefix[i].sym, pid_str),symev_offs)
       // << " " << prefix[i].clock/////////////
                  << lines[i] << "\n";
   }
@@ -847,7 +853,7 @@ void EventTraceBuilder::debug_print() const {
       llvm::dbgs() << " b"
                    << rpad("",ipid*2)
                    << rpad(iid_string(Branch(ipid, 0),b.index),iid_offs-ipid*2)
-                   << " " << rpad(b.ev.to_string(),symev_offs)
+                   << " " << rpad(b.ev.to_string(pid_str),symev_offs)
                    << lines[i++] << "\n";
     }
   }
