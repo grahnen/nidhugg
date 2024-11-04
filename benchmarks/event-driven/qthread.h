@@ -48,72 +48,72 @@ int qthread_create(_actual_qthread_t *tid, void *(*func)(void *), void * arg){
   *tid = 0xdeadbeefdeadbeef;
   return _MAGIC_I_AM_NOT_INTERCEPTED;
 }
-static int qthread_create_internal(qthread_t *tid, void *(*func)(void *), void * arg){
-  *tid = malloc(sizeof(**tid));
-  int ret = pthread_mutex_init(&(*tid)->mutex,NULL);
-  if (ret) return ret;
-  ret = qthread_create(&(*tid)->qthread, func, arg);
-  (*tid)->is_pthread = (ret == _MAGIC_I_AM_NOT_INTERCEPTED);
-  if ((*tid)->is_pthread) return 0;
-  else return ret;
-}
+/* static int qthread_create_internal(qthread_t *tid, void *(*func)(void *), void * arg){ */
+/*   *tid = malloc(sizeof(**tid)); */
+/*   int ret = pthread_mutex_init(&(*tid)->mutex,NULL); */
+/*   if (ret) return ret; */
+/*   ret = qthread_create(&(*tid)->qthread, func, arg); */
+/*   (*tid)->is_pthread = (ret == _MAGIC_I_AM_NOT_INTERCEPTED); */
+/*   if ((*tid)->is_pthread) return 0; */
+/*   else return ret; */
+/* } */
 
-static void qthread_wait_internal(qthread_t tid, void *ret_val){
-  /* Empty; we choose not to model wait
-   *
-   * Note that this means that wait will not wait but return
-   * immediately.
-   */
-}
+/* static void qthread_wait_internal(qthread_t tid, void *ret_val){ */
+/*   /\* Empty; we choose not to model wait */
+/*    * */
+/*    * Note that this means that wait will not wait but return */
+/*    * immediately. */
+/*    *\/ */
+/* } */
 
 void qthread_start(_actual_qthread_t tid){}
-static void qthread_start_internal(qthread_t tid){
-  qthread_start(tid->qthread);
-}
+/* static void qthread_start_internal(qthread_t tid){ */
+/*   qthread_start(tid->qthread); */
+/* } */
 
-static void *_pthread_func(void *_msg_arg){
-  struct _msg_arg *msg_arg = (struct _msg_arg *)_msg_arg;
-  void (*func)(void *) = msg_arg->func;
-  void *arg = msg_arg->arg;
-  pthread_mutex_t *mutex = &msg_arg->tid->mutex;
-  pthread_mutex_lock(mutex);
-  (*func)(arg);
-  pthread_mutex_unlock(mutex);
-  free(msg_arg);
-  return NULL;
-}
-static void _post_func(void *_msg_arg){
-  /* Replicate the actions of _pthread_func as much as possible */
-  struct _msg_arg *msg_arg = (struct _msg_arg *)_msg_arg;
-  void (*func)(void *) = msg_arg->func;
-  void *arg = msg_arg->arg;
-  pthread_mutex_t *mutex = &msg_arg->tid->mutex;
-  (void)mutex; // no lock
-  (*func)(arg);
-  (void)mutex; // no unlock
-  free(msg_arg);
-}
+/* static void *_pthread_func(void *_msg_arg){ */
+/*   struct _msg_arg *msg_arg = (struct _msg_arg *)_msg_arg; */
+/*   void (*func)(void *) = msg_arg->func; */
+/*   void *arg = msg_arg->arg; */
+/*   pthread_mutex_t *mutex = &msg_arg->tid->mutex; */
+/*   pthread_mutex_lock(mutex); */
+/*   (*func)(arg); */
+/*   pthread_mutex_unlock(mutex); */
+/*   free(msg_arg); */
+/*   return NULL; */
+/* } */
+/* static void _post_func(void *_msg_arg){ */
+/*   /\* Replicate the actions of _pthread_func as much as possible *\/ */
+/*   struct _msg_arg *msg_arg = (struct _msg_arg *)_msg_arg; */
+/*   void (*func)(void *) = msg_arg->func; */
+/*   void *arg = msg_arg->arg; */
+/*   pthread_mutex_t *mutex = &msg_arg->tid->mutex; */
+/*   (void)mutex; // no lock */
+/*   (*func)(arg); */
+/*   (void)mutex; // no unlock */
+/*   free(msg_arg); */
+/* } */
 void qthread_post_event(_actual_qthread_t tid, void (*func)(void *), void *arg){}
-static void qthread_post_event_internal(qthread_t tid, void (*func)(void *), void *arg){
-  pthread_t msg;
-  struct _msg_arg *msg_arg = malloc(sizeof(struct _msg_arg));
-  msg_arg->func = func;
-  msg_arg->arg = arg;
-  msg_arg->tid = tid;
-  if (tid->is_pthread)
-    pthread_create(&msg,NULL,_pthread_func,msg_arg);
-  else
-    qthread_post_event(tid->qthread,_post_func,msg_arg);
-}
+/* static void qthread_post_event_internal(qthread_t tid, void (*func)(void *), void *arg){ */
+/*   pthread_t msg; */
+/*   struct _msg_arg *msg_arg = malloc(sizeof(struct _msg_arg)); */
+/*   msg_arg->func = func; */
+/*   msg_arg->arg = arg; */
+/*   msg_arg->tid = tid; */
+/*   if (tid->is_pthread) */
+/*     pthread_create(&msg,NULL,_pthread_func,msg_arg); */
+/*   else */
+/*     qthread_post_event(tid->qthread,_post_func,msg_arg); */
+/* } */
 
 int qthread_exec(){
   return 0;
 }
 
 /* Redirect calls to these qthreads functions */
-#define qthread_create qthread_create_internal
-#define qthread_start qthread_start_internal
-#define qthread_post_event qthread_post_event_internal
-#define qthread_wait qthread_wait_internal
+/* #define qthread_create qthread_create_internal */
+/* #define qthread_start qthread_start_internal */
+/* #define qthread_post_event qthread_post_event_internal */
+/* #define qthread_wait qthread_wait_internal */
 
 #endif /* !defined(__QTHREAD_H__) */

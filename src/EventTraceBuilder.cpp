@@ -19,8 +19,10 @@
 
 #include "Debug.h"
 #include "EventTraceBuilder.h"
+#include "SymEv.h"
 #include "TraceUtil.h"
 
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <forward_list>
@@ -318,13 +320,66 @@ Trace *EventTraceBuilder::get_trace() const{
   return t;
 }
 
-bool EventTraceBuilder::reset(){
+bool EventTraceBuilder::reset() {
   compute_vclocks();
-  // llvm::dbgs() << " Trace:=====> \n";
-  //   for(auto p : currtrace){
-  //     llvm::dbgs()<<"(("<<threads[p.first.get_pid()].cpid<<","<<p.first.get_index()<<"),("
-  // 		  <<threads[p.second.get_pid()].cpid<<","<<p.second.get_index()<<"))\n";
+
+  llvm::dbgs() << " Trace:=====> \n";
+  // std::vector<std::pair<IID<IPid>, IID<IPid>>> cross_thread;
+  // IPid curr = -2;
+  // IPid hdl = -2;
+  // bool open_msg = false;
+  // bool open_hdl = false;
+
+  // std::map<IID<IPid>, IID<IPid>> rf, co, fr;
+  // for(auto p : currtrace){
+  //   if(p.first.get_pid() != curr) {
+  //     if(open_msg) {
+  //       std::cout << "}\n";
+  //     }
+  //     if(threads[p.first.get_pid()].handler_id != hdl) {
+  //       hdl = threads[p.first.get_pid()].handler_id;
+  //       std::cout << "@" << hdl << std::endl;
+  //     }
+  //     std::cout << "{ get(" << p.first.get_pid() << ")";
+  //     open_msg = true;
+  //     curr = p.first.get_pid();
   //   }
+  //   std::cout << " -> " << prefix[p.first.get_index()].sym.back();
+  // }
+  // if(open_msg) {
+  //   std::cout << "}\n";
+  // }
+  // for( auto p : currtrace ) {
+  //   IPid i = p.first.get_pid();
+  //   IPid j = p.second.get_pid();
+  //   if(i == 0 || j == 0) continue;
+  //   auto iev = prefix[i].sym.back();
+  //   auto jev = prefix[j].sym.back();
+
+  //   if(iev.kind == SymEv::STORE && jev.kind == SymEv::LOAD) {
+  //     std::cout << iev << " FR " << jev << std::endl;
+  //   }
+  //   else if(iev.kind == SymEv::STORE && jev.kind == SymEv::STORE) {
+  //     std::cout << iev << " CO " << jev << std::endl;
+  //   }
+  //   else if(iev.kind == SymEv::LOAD && jev.kind == SymEv::STORE) {
+  //     std::cout << iev << " FR " << jev << std::endl;
+  //   }
+  //   else {
+  //     std::cout << iev << " ?? " << jev << std::endl;
+  //   }
+
+  // }
+
+
+  for(auto p : currtrace){
+    llvm::dbgs()<<"(("<<threads[p.first.get_pid()].cpid<<","<<p.first.get_index()<<"),("
+                <<threads[p.second.get_pid()].cpid<<","<<p.second.get_index()<<"))\t"
+                <<prefix[p.first.get_index()].sym.front()<<" -> "
+                <<prefix[p.second.get_index()].sym.front()
+                <<"\n";
+  }
+
   /* Checking if current exploration is redundant */
   // auto trace_it = Traces.find(currtrace);
   // if(trace_it != Traces.end()){
@@ -339,7 +394,6 @@ bool EventTraceBuilder::reset(){
   //   return false;
   // }
   // Traces.insert(std::move(currtrace));
-
   do_race_detect();
 
   if(conf.debug_print_on_reset){
@@ -2373,6 +2427,7 @@ void EventTraceBuilder::see_events(const VecSet<int> &seen_accesses){
       add_msgrev_race(i);
     }
     else add_noblock_race(i);
+    currtrace.emplace(prefix[i].iid, prefix[prefix_idx].iid);
   }
 }
 
@@ -2545,10 +2600,15 @@ void EventTraceBuilder::compute_vclocks(){
   for (const Thread &t : threads) {
     if (t.spawn_event >= 0 && t.event_indices.size() > 0){
       add_happens_after(t.event_indices[0], t.spawn_event);
+      // std::cout << prefix[t.spawn_event].iid << " spawned " << prefix[t.event_indices[0]].iid << "\n";
+      // currtrace.emplace(prefix[t.spawn_event].iid, prefix[t.event_indices[0]].iid);
+      //currtrace.emplace(prefix[t.event_indices[0]].iid, prefix[t.spawn_event].iid);
     }
     if(t.handler_id != -1 && t.event_indices.size() > 0){
       add_happens_after(t.event_indices[0],
 			threads[t.handler_id].event_indices.back());
+      //currtrace.emplace(prefix[threads[t.handler_id].event_indices.back()].iid, prefix[t.event_indices[0]].iid);
+      //currtrace.emplace(prefix[t.event_indices[0]].iid, prefix[threads[t.handler_id].event_indices.back()].iid);
       //TODO: add happensafter to qthread exec event
     }
   }

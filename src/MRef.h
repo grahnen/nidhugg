@@ -22,6 +22,7 @@
 #ifndef __MREF_H__
 #define __MREF_H__
 
+#include <cstdint>
 #include <cassert>
 #include <iterator>
 
