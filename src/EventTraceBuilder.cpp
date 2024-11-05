@@ -323,7 +323,7 @@ Trace *EventTraceBuilder::get_trace() const{
 bool EventTraceBuilder::reset() {
   compute_vclocks();
 
-  llvm::dbgs() << " Trace:=====> \n";
+  //llvm::dbgs() << " Trace:=====> \n";
   // std::vector<std::pair<IID<IPid>, IID<IPid>>> cross_thread;
   // IPid curr = -2;
   // IPid hdl = -2;
@@ -372,13 +372,13 @@ bool EventTraceBuilder::reset() {
   // }
 
 
-  for(auto p : currtrace){
-    llvm::dbgs()<<"(("<<threads[p.first.get_pid()].cpid<<","<<p.first.get_index()<<"),("
-                <<threads[p.second.get_pid()].cpid<<","<<p.second.get_index()<<"))\t"
-                <<prefix[p.first.get_index()].sym.front()<<" -> "
-                <<prefix[p.second.get_index()].sym.front()
-                <<"\n";
-  }
+  // for(auto p : currtrace){
+  //   llvm::dbgs()<<"(("<<threads[p.first.get_pid()].cpid<<","<<p.first.get_index()<<"),("
+  //               <<threads[p.second.get_pid()].cpid<<","<<p.second.get_index()<<"))\t"
+  //               <<prefix[p.first.get_index()].sym.front()<<" -> "
+  //               <<prefix[p.second.get_index()].sym.front()
+  //               <<"\n";
+  // }
 
   /* Checking if current exploration is redundant */
   // auto trace_it = Traces.find(currtrace);
@@ -832,9 +832,7 @@ void EventTraceBuilder::debug_print() const {
   // }
 
   auto pid_str = [this](IPid p) {
-    return threads[p].cpid.to_string();
-    return p*2 >= threads.size() ? std::to_string(p)
-      : threads[p*2].cpid.to_string();
+    return p >= threads.size() ? std::to_string(p) : threads[p].cpid.to_string();
   };
 
   unsigned i = 0;
